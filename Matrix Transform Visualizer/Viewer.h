@@ -1,11 +1,11 @@
 #pragma once
 #include "helpfile.h"
-class Viewer
+#include "Object.h"
+class Viewer : public Object
 {
 private:
     glm::vec3 targetPosition = glm::vec3(0.0);
     glm::vec3 up = glm::vec3(0.0, 1.0, 0.0);
-    glm::vec3 position = glm::vec3(0.0f);
     float distanceToTarget = 3.0f;
     glm::mat4 projection = glm::mat4(1.0f);
     glm::mat4 view = glm::mat4(1.0f);
@@ -61,7 +61,7 @@ public:
     __declspec(property(get = GetProjection))                                  glm::mat4 Projection;
 #pragma endregion
 
-    void Update()
+    void Update() override
     {
         position = { distanceToTarget * cos(glm::radians(pitch)) * cos(glm::radians(yaw)),
                      distanceToTarget * sin(glm::radians(pitch)),

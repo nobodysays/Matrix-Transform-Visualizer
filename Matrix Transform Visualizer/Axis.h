@@ -16,12 +16,12 @@ public:
         2.0,0.0,.0,0.0, 0.0, 1.0
     };
     GLuint VAO = 0;
-    GLuint VBO = 0;
     Shader* shader = nullptr;
     Viewer* viewer = nullptr;
     glm::vec3 position = glm::vec3(0.0);
     Axis(Viewer* viewer) :viewer(viewer)
     {
+        GLuint VBO = 0;
         glGenBuffers(1, &VAO);
         glGenBuffers(1, &VBO);
 

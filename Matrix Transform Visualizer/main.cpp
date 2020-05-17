@@ -6,7 +6,13 @@ void OnKeyboard(GLFWwindow* window, int key, int scancode, int actions, int mods
 void OnScroll(GLFWwindow* window, double, double yoffset);
 void OnMouse(GLFWwindow* window, double xpos, double ypos);
 void OnMouseButtonClicked(GLFWwindow* window, int button, int action, int mods);
-
+void PrintPerspectiveMatrixDescription();
+void PrintScaleMatrixDescription();
+void PrintTranslateMatrixDescription();
+void PrintRotationMatrixDescription();
+void PrintShearsMatrixDescription();
+void PrintMatrixDescription();
+void PrintSphericalCoordinatesDescription();
 Cube* cube;
 Viewer* viewer;
 Axis* axis;
@@ -23,7 +29,7 @@ int main(int, char**)
     glfwMakeContextCurrent(window);
     glfwSwapInterval(0); 
     glViewport(0, 0, width, height);
-    bool err = glewInit() != GLEW_OK;
+    glewInit();
     IMGUI_CHECKVERSION();
     ImGui::CreateContext();
     ImGuiIO& io = ImGui::GetIO(); (void)io;
@@ -79,22 +85,8 @@ int main(int, char**)
             }
             if (ImGui::CollapsingHeader("Perspective"))
             {
-                float fieldOfView=viewer->Fov, aspect=viewer->Aspect, near=viewer->Near, far= viewer->Far;
-                ImGui::Text("Perspective matrix:");
-                ImGui::Text("\
-|x'|   | ctg(fov/2)/a  0           0            0  |   |x| \n\
-|  |   |                                           |   | |       \n\
-|y'|   | 0             ctg(fov/2)  0            0  |   |y| \n\
-|  | = |                                           | * | |       \n\
-|z'|   | 0             0           (f+n)/(f-n)  0  |   |z| \n\
-|  |   |                                           |   | |       \n\
-|1 |   | 0             0           -2fn/(f-n)   0  |   |1| \n\
-                    ");
-                ImGui::Separator();
-                ImGui::BulletText("x, y, z old coordinates");
-                ImGui::BulletText("x', y', z' new coordinates");
-                ImGui::BulletText("a=aspect, n=near, f=far");
-                ImGui::Separator();
+                auto fieldOfView=viewer->Fov, aspect=viewer->Aspect, near=viewer->Near, far= viewer->Far;
+                PrintPerspectiveMatrixDescription();
                 ImGui::SliderFloat("fov", &fieldOfView, 0.f, 90.f);
                 ImGui::SliderFloat("aspect", &aspect, 0.1, 3.0);
                 ImGui::SliderFloat("near", &near, 0.1, 100.0);
@@ -106,9 +98,19 @@ int main(int, char**)
                 if (ImGui::Button("Reset Perspective options"))
                     viewer->ResetProjection();
             }
+            if (ImGui::CollapsingHeader("Rotation"))
+            {
+                PrintRotationMatrixDescription();
+                ImGui::SliderFloat("phi", &cube->phi, -180, 180);
+                ImGui::SliderFloat("theta", &cube->theta, -180, 180);
+                ImGui::SliderFloat("gamma", &cube->gamma, -180, 180);
+                if (ImGui::Button("Reset Rotation"))
+                    cube->ResetRotation();
+            }
             if (ImGui::CollapsingHeader("Size"))
             {
-                float cubeHeight = cube->Size.y, cubeWidth = cube->Size.x, cubeDepth = cube->Size.z;
+                PrintScaleMatrixDescription();
+                auto cubeHeight = cube->Size.y, cubeWidth = cube->Size.x, cubeDepth = cube->Size.z;
                 ImGui::SliderFloat("height", &cubeHeight, 0.1, 3.0);
                 ImGui::SliderFloat("width", &cubeWidth, 0.1, 3.0);
                 ImGui::SliderFloat("depth", &cubeDepth, 0.1, 3.0);
@@ -117,18 +119,21 @@ int main(int, char**)
                 if (ImGui::Button("Reset size"))
                     cube->ResetSize();
             }
-            if (ImGui::CollapsingHeader("Position"))
+            if (ImGui::CollapsingHeader("Translate"))
             {
-                float positionX = cube->Position.x, positionY = cube->Position.y, positionZ = cube->Position.z;
-                ImGui::SliderFloat("x", &positionX, -1.0, 1.0);
-                ImGui::SliderFloat("y", &positionY, -1.0, 1.0);
-                ImGui::SliderFloat("z", &positionZ, -1.0, 1.0);
+                PrintTranslateMatrixDescription();
+                auto positionX = cube->Position.x, positionY = cube->Position.y, positionZ = cube->Position.z;
+                ImGui::SliderFloat("px", &positionX, -1.0, 1.0);
+                ImGui::SliderFloat("py", &positionY, -1.0, 1.0);
+                ImGui::SliderFloat("pz", &positionZ, -1.0, 1.0);
                 cube->Position = { positionX, positionY, positionZ };
                 if (ImGui::Button("Reset position"))
                     cube->ResetPosition();
             }
+            
             if (ImGui::CollapsingHeader("Shears"))
             {
+                PrintShearsMatrixDescription();
                 ImGui::SliderFloat("hxy", &cube->shearsX.y, -90.0, 90.0);
                 ImGui::SliderFloat("hxz", &cube->shearsX.z, -90.0, 90.0);
                 ImGui::SliderFloat("hyx", &cube->shearsY.x, -90.0, 90.0);
@@ -140,7 +145,8 @@ int main(int, char**)
             }
             if (ImGui::CollapsingHeader("Spherical coordinates for viewer"))
             {
-                float theta = viewer->Pitch,
+                PrintSphericalCoordinatesDescription();
+                auto theta = viewer->Pitch,
                       phi = viewer->Yaw,
                       radius = viewer->DistanceToTarget;
 
@@ -229,3 +235,110 @@ void OnMouseButtonClicked(GLFWwindow* window, int button, int action, int mods)
         mouseClicked = false;
     }
 }
+
+void PrintPerspectiveMatrixDescription()
+{
+    ImGui::Text("Perspective matrix:");
+    ImGui::Text("\
+|x'|   | ctg(fov/2)/a  0           0            0  |   |x| \n\
+|  |   |                                           |   | |       \n\
+|y'|   | 0             ctg(fov/2)  0            0  |   |y| \n\
+|  | = |                                           | * | |       \n\
+|z'|   | 0             0           (f+n)/(f-n)  0  |   |z| \n\
+|  |   |                                           |   | |       \n\
+|1 |   | 0             0           -2fn/(f-n)   0  |   |1| \n\
+                    ");
+    ImGui::Separator();
+    ImGui::BulletText("x, y, z old coordinates");
+    ImGui::BulletText("x', y', z' new coordinates");
+    ImGui::BulletText("a=aspect, n=near, f=far");
+    ImGui::Separator();
+}
+
+void PrintScaleMatrixDescription()
+{
+    ImGui::Text("Scale matrix:");
+    ImGui::Text("\
+|x'|   | width  0       0     |   |x| \n\
+|  |   |                      |   | |       \n\
+|y'| = | 0      height  0     | * |y| \n\
+|  |   |                      |   | |       \n\
+|z'|   | 0      0       depth |   |z| \n\
+                    ");
+    ImGui::Separator();
+    ImGui::BulletText("x, y, z old coordinates");
+    ImGui::BulletText("x', y', z' new coordinates");
+    ImGui::Separator();
+
+}
+
+void PrintTranslateMatrixDescription()
+{
+    ImGui::Text("Translate matrix:");
+    ImGui::Text("\
+|x'|   | 1   0    0    px |   |x| \n\
+|  |   |                  |   | |       \n\
+|y'|   | 0   1    0    py |   |y| \n\
+|  | = |                  | * | |       \n\
+|z'|   | 0   0    1    pz |   |z| \n\
+|  |   |                  |   | |       \n\
+|1 |   | 0   0    0    1  |   |1| \n\
+                    ");
+    ImGui::Separator();
+    ImGui::BulletText("x, y, z old coordinates");
+    ImGui::BulletText("x', y', z' new coordinates");
+    ImGui::Separator();
+}
+
+void PrintRotationMatrixDescription()
+{
+    ImGui::Text("Rotate matrices matrix:");
+    ImGui::Separator();
+    ImGui::Text("Rotating around Z axis (Rz)");
+    ImGui::Text("\
+|x'|   | cos(phi) -sin(phi) 0 |   |x| \n\
+|  |   |                      |   | |       \n\
+|y'| = | sin(phi) cos(phi)  0 | * |y| \n\
+|  |   |                      |   | |       \n\
+|z'|   | 0        0         1 |   |z| \n\
+                    ");
+    ImGui::Separator();
+    ImGui::BulletText("x, y, z old coordinates");
+    ImGui::BulletText("x', y', z' new coordinates");
+
+    ImGui::Separator();
+    ImGui::Text("Rotating around X axis (Rx)");
+    ImGui::Text("\
+|x'|   | 1  0           0           |   |x| \n\
+|  |   |                            |   | |       \n\
+|y'| = | 0  cos(theta)  -sin(theta) | * |y| \n\
+|  |   |                            |   | |       \n\
+|z'|   | 0  sin(theta)  cos(theta)  |   |z| \n\
+                    ");
+    ImGui::Separator();
+    ImGui::BulletText("x, y, z old coordinates");
+    ImGui::BulletText("x', y', z' new coordinates");
+
+    ImGui::Separator();
+    ImGui::Text("Rotating around Y axis (Ry)");
+    ImGui::Text("\
+|x'|   | cos(gamma)  0  -sin(gamma) |   |x| \n\
+|  |   |                            |   | |       \n\
+|y'| = | 0           1  0           | * |y| \n\
+|  |   |                            |   | |       \n\
+|z'|   | sin(gamma)  0  cos(gamma)  |   |z| \n\
+                    ");
+    ImGui::Separator();
+    ImGui::BulletText("x, y, z old coordinates");
+    ImGui::BulletText("x', y', z' new coordinates");
+
+}
+
+void PrintShearsMatrixDescription()
+{}
+
+void PrintMatrixDescription()
+{}
+
+void PrintSphericalCoordinatesDescription()
+{}
