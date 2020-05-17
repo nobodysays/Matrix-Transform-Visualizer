@@ -71,10 +71,16 @@
     <ClInclude Include="Viewer.h">
       <Filter>Файлы заголовков</Filter>
     </ClInclude>
-    <ClInclude Include="Window.h">
+    <ClInclude Include="Shader.h">
       <Filter>Файлы заголовков</Filter>
     </ClInclude>
-    <ClInclude Include="Shader.h">
+    <ClInclude Include="Axis.h">
+      <Filter>Файлы заголовков</Filter>
+    </ClInclude>
+    <ClInclude Include="helpfile.h">
+      <Filter>Файлы заголовков</Filter>
+    </ClInclude>
+    <ClInclude Include="Cube.h">
       <Filter>Файлы заголовков</Filter>
     </ClInclude>
   </ItemGroup>

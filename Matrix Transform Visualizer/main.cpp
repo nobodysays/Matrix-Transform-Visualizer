@@ -1,88 +1,20 @@
-#include "imgui.h"
-#include "imgui_impl_glfw.h"
-#include "imgui_impl_opengl3.h"
-#include <stdio.h>
-#include "Shader.h"
-#include <GL/glew.h>          
-#include <GLFW/glfw3.h>
-glm::mat4 view;
-glm::mat4 projection;
-float r = 3.0;
-const double width =1920;
-const double height = 1080;
-void OnScroll(GLFWwindow* window, double, double yoffset)
-{
-    r -= yoffset * 0.4;
-    if (r > 5)
-        r = 5;
-    if (r < 0.5)
-        r = 0.5;
-}
+#include "helpfile.h"
+#include "Cube.h"
+#include "Viewer.h"
+#include "Axis.h"
+void OnKeyboard(GLFWwindow* window, int key, int scancode, int actions, int mods);
+void OnScroll(GLFWwindow* window, double, double yoffset);
+void OnMouse(GLFWwindow* window, double xpos, double ypos);
+void OnMouseButtonClicked(GLFWwindow* window, int button, int action, int mods);
 
-void OnKeyboard(GLFWwindow*window, int key, int scancode, int actions, int mods)
-{
-    if (key == GLFW_KEY_ESCAPE)
-    {
-        glfwSetWindowShouldClose(window, true);
-    }
-}
+Cube* cube;
+Viewer* viewer;
+Axis* axis;
 
-float hxy=0, hxz=0, hyx=0, hyz=0, hzx=0, hzy=0;
-
-float theta = 17.0f;
-float phi = 60.0f;
-
-float alpha = 0.0f;
-float beta = 0.0f;
-float gamma = 0.0f;
-bool firstMouse = true;
-double lastX = width/2, lastY = height/2;
-bool mouseClicked = false;
-void OnMouse(GLFWwindow* window, double xpos, double ypos)
-{
-    if (mouseClicked)
-    {
-        if (xpos <= 2*width/3)
-        {
-
-            if (firstMouse) // эта переменная была проинициализирована значением true
-            {
-                lastX = xpos;
-                lastY = ypos;
-                firstMouse = false;
-            }
-            GLfloat xoffset = xpos - lastX;
-            GLfloat yoffset = lastY - ypos;
-            lastX = xpos;
-            lastY = ypos;
-            phi += xoffset;
-            theta -= yoffset;
-            if (phi > 89.0)
-                phi = 89.0f;
-            if (phi < -89.0)
-                phi = -89.0f;
-
-            if (theta > 89.0)
-                theta = 89.0f;
-            if (theta < -89.0)
-                theta = -89.0f;
-        }
-    }
-}
-void OnMouseButtonClicked(GLFWwindow*window, int button, int action, int mods)
-{
-    if (action == GLFW_PRESS)
-    {
-        mouseClicked = true;
-        glfwGetCursorPos(window, &lastX, &lastY);
-    }
-    else
-    {
-        mouseClicked = false;
-    }
-}
 int main(int, char**)
 {
+#pragma region inits
+    //initializing glew, glfw, imgui, opengl, callbacks
     glfwInit();
     glfwWindowHint(GLFW_SAMPLES, 4);
     glfwWindowHint(GLFW_CONTEXT_VERSION_MAJOR, 3);
@@ -99,152 +31,55 @@ int main(int, char**)
     ImGui::StyleColorsDark();
     ImGui_ImplGlfw_InitForOpenGL(window, true);
     ImGui_ImplOpenGL3_Init("#version 410");
+    glfwSetScrollCallback(window, OnScroll);
+    glfwSetCursorPosCallback(window, OnMouse);
+    glfwSetMouseButtonCallback(window, OnMouseButtonClicked);
+    glfwSetKeyCallback(window, OnKeyboard);
+    ImGuiWindowFlags window_flags = 0;
+    window_flags |= ImGuiWindowFlags_NoMove;
+    window_flags |= ImGuiWindowFlags_NoResize;
+#pragma endregion
+    //adding objects to scene
+    viewer = new Viewer();
+    cube = new Cube(viewer);
+    axis = new Axis(viewer);
 
+    bool fullScreen = false;
+    bool showFps = false;
 
-    float vertices[] = {
-        //front
-       -.5, .5, .5,
-       -.5, -.5, .5, 
-
-       -.5, -.5, .5, 
-       .5, -.5, .5, 
-
-       .5, -.5, .5, 
-       .5, .5, .5, 
-
-       .5, .5, .5, 
-       -.5, .5, .5, 
-       //back
-       -.5, .5, -.5,
-       -.5, -.5, -.5,
-
-       -.5, -.5, -.5,
-       .5, -.5, -.5,
-
-       .5, -.5, -.5,
-       .5, .5, -.5,
-
-       .5, .5, -.5,
-       -.5, .5, -.5,
-
-       //left
-
-       -.5, .5,-.5,
-       -.5, .5,.5,
-
-       -.5, -.5,.5,
-       -.5, -.5,-.5,
-
-       //right
-
-       .5, .5,-.5,
-       .5, .5,.5,
-
-       .5, -.5,.5,
-       .5, -.5,-.5,
-    };
-
-    float axisVertices[] = {
-        .0,.0, .0, 1.0, 0.0, 0.0,
-        .0,.0, 2., 1.0, 0.0, 0.0,
-
-        .0,.0,.0,  0.0, 1.0, 0.0,
-        .0,2.0,.0, 0.0, 1.0, 0.0,
-
-        .0,.0,.0,  0.0, 0.0, 1.0,
-        2.0,0.0,.0,0.0, 0.0, 1.0
-    };
-    GLuint axisVAO;
-    GLuint axisVBO;
-
-    glGenBuffers(1, &axisVAO);
-    glGenBuffers(1, &axisVBO);
-
-    auto axisShader = new Shader("Axis.vert", "Axis.frag");
-    glGenVertexArrays(1, &axisVAO);
-    glGenBuffers(1, &axisVBO);
-
-    glBindVertexArray(axisVAO);
-    glBindBuffer(GL_ARRAY_BUFFER, axisVBO);
-    glBufferData(GL_ARRAY_BUFFER, sizeof(axisVertices), axisVertices, GL_STATIC_DRAW);
-    glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, 6 * sizeof(GLfloat), (GLvoid*)0);
-    glEnableVertexAttribArray(0);
-    glVertexAttribPointer(1, 3, GL_FLOAT, GL_FALSE, 6 * sizeof(GLfloat), (GLvoid*)(sizeof(GLfloat) * 3));
-    glEnableVertexAttribArray(1);
-
-
-    GLuint cubeVAO;
-    GLuint cubeVBO;
-
-    glGenBuffers(1, &cubeVAO);
-    glGenBuffers(1, &cubeVBO);
-
-   auto shader = new Shader("Cube.vert", "Cube.frag");
-   glGenVertexArrays(1, &cubeVAO);
-   glGenBuffers(1, &cubeVBO);
-
-   glBindVertexArray(cubeVAO);
-   glBindBuffer(GL_ARRAY_BUFFER, cubeVBO);
-   glBufferData(GL_ARRAY_BUFFER, sizeof(vertices), vertices, GL_STATIC_DRAW);
-   glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, 3 * sizeof(GLfloat), (GLvoid*)0);
-   glEnableVertexAttribArray(0);
-
-   glm::mat4 model(0.0);
-   model = glm::rotate(model, -55.0f, glm::vec3(1.0f, 0.0f, 0.0f));
-
-
-   projection = glm::perspective(45.0f, (float)width / (float)height, 0.1f, 100.0f);
-   glm::vec3 position = glm::vec3(1.0f);
-   glm::vec3 target = glm::vec3(0.0, 0.0f, -3.0f);
-   glm::vec3 up = glm::vec3(0.0, 1.0, 0.0);
-   view = glm::lookAt(position, target, up);
-
-   float size = 1.0f;
-   float angleY = 0.0f;
-   float angleZ = 0.0f;
-
-   glm::mat4 scaleTransform = glm::mat4(1.0f);
-   glm::mat4 translateTransform = glm::mat4(1.0f);
-   glm::mat4 rotateTransform = glm::mat4(1.0f);
-
-
-   float cubeWidth = 1.0f;
-   float cubeHeight = 1.0f;
-   float cubeDepth = 1.0f;
-
-   float positionX = 0.0f;
-   float positionY = 0.0f;
-   float positionZ = 0.0f;
-   projection = glm::perspective(45.0f, (float)width / (float)height, 0.1f, 100.0f);
-
-   float fielOfView = 45.0f;
-   float aspect = width/height;
-   float far = 0.1f;
-   float near = 100.0f;
-
-   bool ortho = false;
-     glfwSetScrollCallback(window, OnScroll);
-   glfwSetCursorPosCallback(window, OnMouse);
-   glfwSetMouseButtonCallback(window, OnMouseButtonClicked);
-   glfwSetKeyCallback(window, OnKeyboard);
-   ImGuiWindowFlags window_flags = 0;
-   window_flags |= ImGuiWindowFlags_NoMove;
-   window_flags |= ImGuiWindowFlags_NoResize;
     while (!glfwWindowShouldClose(window))
     {
-        glfwPollEvents();
+        glfwPollEvents(); //keyboaed, mouse, scroll events
         ImGui_ImplOpenGL3_NewFrame();
         ImGui_ImplGlfw_NewFrame();
         ImGui::NewFrame();
         {
-            static float f = 0.0f;
-            static int counter = 0;
             ImGui::SetNextWindowPos(ImVec2(2*width/3, 0), ImGuiCond_FirstUseEver);
             ImGui::SetNextWindowSize(ImVec2(2 * width / 3, height), ImGuiCond_FirstUseEver);
-            ImGui::Begin("Matrix Transform Visualizer", nullptr, window_flags);                          // Create a window called "Hello, world!" and append into it.
+            ImGui::Begin("Matrix Transform Visualizer", nullptr, window_flags);
+            ImGui::Checkbox("Fullscreen", &fullScreen);
+            ImGui::Checkbox("Show fps", &showFps);
+            if (fullScreen)
+                glfwSetWindowMonitor(window, glfwGetPrimaryMonitor(), 0, 0, width, height, 60);
+            else
+                glfwSetWindowMonitor(window,nullptr, 50, 50, width-50, height-50, 60);
+            {
+                ImGui::Text("Basis: ");
+                float e1[3] = { cube->Basis[0].x, cube->Basis[0].y, cube->Basis[0].z };
+                float e2[3] = { cube->Basis[1].x, cube->Basis[1].y, cube->Basis[1].z };
+                float e3[3] = { cube->Basis[2].x, cube->Basis[2].y, cube->Basis[2].z };
+
+                ImGui::DragFloat3("e1", e1, 0.1);
+                ImGui::DragFloat3("e2", e2, 0.1);
+                ImGui::DragFloat3("e3", e3, 0.1);
+                cube->Basis = glm::mat3({ e1[0], e1[1],e1[2] }, { e2[0], e2[1],e2[2] }, { e3[0], e3[1],e3[2] });
+
+                if (ImGui::Button("Reset basis"))
+                    cube->ResetBasis();
+            }
             if (ImGui::CollapsingHeader("Perspective"))
             {
-
+                float fieldOfView=viewer->Fov, aspect=viewer->Aspect, near=viewer->Near, far= viewer->Far;
                 ImGui::Text("Perspective matrix:");
                 ImGui::Text("\
 |x'|   | ctg(fov/2)/a  0           0            0  |   |x| \n\
@@ -260,106 +95,77 @@ int main(int, char**)
                 ImGui::BulletText("x', y', z' new coordinates");
                 ImGui::BulletText("a=aspect, n=near, f=far");
                 ImGui::Separator();
-                ImGui::SliderFloat("fov", &fielOfView, 0.f, 90.f);
+                ImGui::SliderFloat("fov", &fieldOfView, 0.f, 90.f);
                 ImGui::SliderFloat("aspect", &aspect, 0.1, 3.0);
-                ImGui::SliderFloat("near", &near, 0.1, 1000.0);
-                ImGui::SliderFloat("far", &far, 0.1, 1000.0);
+                ImGui::SliderFloat("near", &near, 0.1, 100.0);
+                ImGui::SliderFloat("far", &far, 0.1, 500.0);
+                viewer->Aspect = aspect;
+                viewer->Fov = fieldOfView;
+                viewer->Near = near;
+                viewer->Far = far;
                 if (ImGui::Button("Reset Perspective options"))
-                {
-                    fielOfView = 45.0f;
-                    aspect = width / height;
-                    near = 0.1f;
-                    far = 100.0f;
-                }
+                    viewer->ResetProjection();
             }
             if (ImGui::CollapsingHeader("Size"))
             {
+                float cubeHeight = cube->Size.y, cubeWidth = cube->Size.x, cubeDepth = cube->Size.z;
                 ImGui::SliderFloat("height", &cubeHeight, 0.1, 3.0);
                 ImGui::SliderFloat("width", &cubeWidth, 0.1, 3.0);
                 ImGui::SliderFloat("depth", &cubeDepth, 0.1, 3.0);
+                cube->Size = {cubeWidth, cubeHeight, cubeDepth};
+
                 if (ImGui::Button("Reset size"))
-                {
-                    cubeWidth = cubeHeight = cubeDepth = 1.0f;
-                }
+                    cube->ResetSize();
             }
             if (ImGui::CollapsingHeader("Position"))
             {
+                float positionX = cube->Position.x, positionY = cube->Position.y, positionZ = cube->Position.z;
                 ImGui::SliderFloat("x", &positionX, -1.0, 1.0);
                 ImGui::SliderFloat("y", &positionY, -1.0, 1.0);
                 ImGui::SliderFloat("z", &positionZ, -1.0, 1.0);
+                cube->Position = { positionX, positionY, positionZ };
                 if (ImGui::Button("Reset position"))
-                {
-                    positionX = positionY = positionZ = 0.0f;
-                }
+                    cube->ResetPosition();
             }
             if (ImGui::CollapsingHeader("Shears"))
             {
-                ImGui::SliderFloat("hxy", &hxy, -90.0, 90.0);
-                ImGui::SliderFloat("hxz", &hxz, -90.0, 90.0);
-                ImGui::SliderFloat("hyx", &hyx, -90.0, 90.0);
-                ImGui::SliderFloat("hyz", &hyz, -90.0, 90.0);
-                ImGui::SliderFloat("hzx", &hzx, -90.0, 90.0);
-                ImGui::SliderFloat("hzy", &hzy, -90.0, 90.0);
+                ImGui::SliderFloat("hxy", &cube->shearsX.y, -90.0, 90.0);
+                ImGui::SliderFloat("hxz", &cube->shearsX.z, -90.0, 90.0);
+                ImGui::SliderFloat("hyx", &cube->shearsY.x, -90.0, 90.0);
+                ImGui::SliderFloat("hyz", &cube->shearsY.z, -90.0, 90.0);
+                ImGui::SliderFloat("hzx", &cube->shearsZ.x, -90.0, 90.0);
+                ImGui::SliderFloat("hzy", &cube->shearsZ.y, -90.0, 90.0);
                 if (ImGui::Button("Reset shears"))
-                {
-                    hxy = hxz = hyx = hyz = hzx = hzy = 0;
-                }
+                    cube->ResetShears();
             }
             if (ImGui::CollapsingHeader("Spherical coordinates for viewer"))
             {
+                float theta = viewer->Pitch,
+                      phi = viewer->Yaw,
+                      radius = viewer->DistanceToTarget;
 
                 ImGui::SliderFloat("theta", &theta, -180.0, 180.0);
                 ImGui::SliderFloat("phi", &phi, -180.0, 180.0);
-                ImGui::SliderFloat("radius", &r, 0.5, 5.0);
+                ImGui::SliderFloat("radius", &radius, 0.5, 60.0);
+                viewer->Pitch = theta;
+                viewer->Yaw = phi;
+                viewer->DistanceToTarget = radius;
                 if (ImGui::Button("Reset spherical coordinates"))
                 {
-
-                    theta = 17.0f;
-                    phi = 60.0f;
-                    r = 3;
+                    viewer->ResetSpherical();
                 }
             }
 
-            ImGui::Text("Application average %.3f ms/frame (%.1f FPS)", 1000.0f / ImGui::GetIO().Framerate, ImGui::GetIO().Framerate);
+            if(showFps)
+                ImGui::Text("Application average %.3f ms/frame (%.1f FPS)", 1000.0f / ImGui::GetIO().Framerate, ImGui::GetIO().Framerate);
             ImGui::End();
         }
         ImGui::Render();
         glClear(GL_COLOR_BUFFER_BIT);
 
-            projection = glm::perspective(fielOfView, aspect, near, far);
-
-        double PI = 3.1415;
-        position.x = r*cos(glm::radians(theta)) * cos(glm::radians(phi));
-        position.y = r*sin(glm::radians(theta));
-        position.z = r*cos(glm::radians(theta)) * sin(glm::radians(phi));
-        glm::vec3 target = glm::vec3(0.0, 0.0f, 0.0f);
-        glm::vec3 up = glm::vec3(0.0, 1.0, 0.0);
-        view = glm::lookAt(position, target, up);
-
-        glBindVertexArray(axisVAO);
-        axisShader->setMat4("model", glm::translate(glm::mat4(1.f), glm::vec3(0.0)) * glm::scale(glm::mat4(1.0), glm::vec3(size)));
-        axisShader->setMat4("view", view);
-        axisShader->setMat4("projection", projection);
-        glDrawArrays(GL_LINES, 0, 6);
-        glBindVertexArray(0);
-
-
-        scaleTransform = glm::scale(glm::mat4(1.0), { cubeWidth, cubeHeight, cubeDepth });
-        translateTransform = glm::translate(glm::mat4(1.0), { positionX, positionY, positionZ });
-        glm::mat4 shears = glm::mat4(
-            {
-            {1, hxy*PI/180, hxz * PI / 180, 0},
-            {hyx * PI / 180, 1, hyz * PI / 180, 0},
-            {hzx * PI / 180, hzy * PI / 180, 1, 0},
-            {0, 0, 0, 1}
-            }
-        );
-        glBindVertexArray(cubeVAO);
-        shader->setMat4("model", translateTransform*rotateTransform*scaleTransform* shears);
-        shader->setMat4("view", view);
-        shader->setMat4("projection", projection);
-        glDrawArrays(GL_LINES, 0, 48);
-        glBindVertexArray(0);
+        viewer->Update();
+        axis->Update();
+        cube->Update();
 
         ImGui_ImplOpenGL3_RenderDrawData(ImGui::GetDrawData());
         glfwSwapBuffers(window);
@@ -372,4 +178,54 @@ int main(int, char**)
     glfwTerminate();
 
     return 0;
+}
+
+//user callbacks
+void OnScroll(GLFWwindow* window, double, double yoffset)
+{
+    viewer->DistanceToTarget -= yoffset * 0.5;
+}
+
+void OnKeyboard(GLFWwindow* window, int key, int scancode, int actions, int mods)
+{
+    if (key == GLFW_KEY_ESCAPE)
+    {
+        glfwSetWindowShouldClose(window, true);
+    }
+}
+
+bool firstMouse = true;
+double lastX = width / 2, lastY = height / 2;
+bool mouseClicked = false;
+void OnMouse(GLFWwindow* window, double xpos, double ypos)
+{
+    if (mouseClicked)
+    {
+        if (xpos <= 2 * width / 3)
+        {
+            if (firstMouse) // эта переменная была проинициализирована значением true
+            {
+                lastX = xpos;
+                lastY = ypos;
+                firstMouse = false;
+            }
+            viewer->Yaw += xpos - lastX;
+            viewer->Pitch -= lastY - ypos;
+            lastX = xpos;
+            lastY = ypos;
+        }
+    }
+}
+
+void OnMouseButtonClicked(GLFWwindow* window, int button, int action, int mods)
+{
+    if (action == GLFW_PRESS)
+    {
+        mouseClicked = true;
+        glfwGetCursorPos(window, &lastX, &lastY);
+    }
+    else
+    {
+        mouseClicked = false;
+    }
 }

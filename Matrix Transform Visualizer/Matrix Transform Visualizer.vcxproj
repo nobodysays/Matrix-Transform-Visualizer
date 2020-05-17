@@ -153,6 +153,9 @@
     <ClCompile Include="main.cpp" />
   </ItemGroup>
   <ItemGroup>
+    <ClInclude Include="Axis.h" />
+    <ClInclude Include="Cube.h" />
+    <ClInclude Include="helpfile.h" />
     <ClInclude Include="imconfig.h" />
     <ClInclude Include="imgui.h" />
     <ClInclude Include="imgui_impl_glfw.h" />
@@ -163,7 +166,6 @@
     <ClInclude Include="imstb_truetype.h" />
     <ClInclude Include="Shader.h" />
     <ClInclude Include="Viewer.h" />
-    <ClInclude Include="Window.h" />
   </ItemGroup>
   <ItemGroup>
     <None Include="Axis.frag" />
