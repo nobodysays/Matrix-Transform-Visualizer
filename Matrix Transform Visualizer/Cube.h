@@ -53,6 +53,7 @@ public:
     float phi = 0.0f;
     float theta = 0.0f;
     float gamma = 0.0f;
+    float b = .5;
     glm::vec3 shearsX = glm::vec3(.0f);
     glm::vec3 shearsY = glm::vec3(.0f);
     glm::vec3 shearsZ = glm::vec3(.0f);
@@ -79,7 +80,6 @@ public:
     {
         this->viewer = viewer;
         GLuint VBO;
-
         glGenBuffers(1, &VAO);
         glGenBuffers(1, &VBO);
 
@@ -96,8 +96,6 @@ public:
     void Update() override
     {
         glBindVertexArray(VAO);
-        shader->setMat4("translateTransform", glm::translate(basis, position));
-        shader->setMat4("scaleTransform", glm::scale(basis, size));
         glm::mat3 rotateAroundZ = {
             {cos(glm::radians(phi)), -sin(glm::radians(phi)),0},
             {sin(glm::radians(phi)), cos(glm::radians(phi)), 0},
@@ -113,6 +111,8 @@ public:
             {0,1,0},
             {sin(glm::radians(gamma)), 0, cos(glm::radians(gamma))}
         };
+        shader->setMat4("translateTransform", glm::translate(basis, position));
+        shader->setMat4("scaleTransform", glm::scale(basis, size));
         shader->setMat4("rotationTransform", rotateAroundZ*rotateAroundY* rotateAroundX);
         shader->setMat4("shearsTransform", glm::mat4(
             {

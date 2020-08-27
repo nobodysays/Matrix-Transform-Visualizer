@@ -100,5 +100,11 @@
     <None Include="Axis.frag">
       <Filter>Исходные файлы\Shaders</Filter>
     </None>
+    <None Include="Dots.vert">
+      <Filter>Исходные файлы\Shaders</Filter>
+    </None>
+    <None Include="Dots.frag">
+      <Filter>Исходные файлы\Shaders</Filter>
+    </None>
   </ItemGroup>
 </Project>

@@ -16,6 +16,7 @@ void PrintSphericalCoordinatesDescription();
 Cube* cube;
 Viewer* viewer;
 Axis* axis;
+bool canRotate = true;
 
 int main(int, char**)
 {
@@ -25,7 +26,7 @@ int main(int, char**)
     glfwWindowHint(GLFW_SAMPLES, 4);
     glfwWindowHint(GLFW_CONTEXT_VERSION_MAJOR, 3);
     glfwWindowHint(GLFW_CONTEXT_VERSION_MINOR, 0);
-    GLFWwindow* window = glfwCreateWindow(width, height, "Matrix Transform Visualizer", nullptr, NULL);
+    GLFWwindow*  window = glfwCreateWindow(width, height, "Matrix Transform Visualizer", nullptr, NULL);
     glfwMakeContextCurrent(window);
     glfwSwapInterval(0); 
     glViewport(0, 0, width, height);
@@ -52,6 +53,47 @@ int main(int, char**)
 
     bool fullScreen = false;
     bool showFps = false;
+    
+    const int sectors = 10;
+    const int stacks =  10;
+
+    const float pitchOffset = 2 * M_PI / sectors;
+    const float yawOffset = 2 * M_PI / stacks;
+
+    float vertices[3*sectors*stacks];
+
+    float pitch = M_PI_2;
+    float yaw = M_PI_2;
+    for (size_t i = 0; i < sectors; i++)
+    {
+        for (size_t j = 0; j < stacks; j++)
+        {
+            vertices[stacks*i*3 + 3*j]   = sin(pitch) * cos(yaw);
+            vertices[stacks*i*3 + 3*j+1] = sin(pitch)* sin(yaw);
+            vertices[stacks*i*3 + 3*j+2] = cos(pitch);
+            yaw += yawOffset;
+
+        }
+        pitch += pitchOffset;
+    }
+   /* position = { distanceToTarget * cos(glm::radians(pitch)) * cos(glm::radians(yaw)),
+                    distanceToTarget * sin(glm::radians(pitch)),
+                    distanceToTarget * cos(glm::radians(pitch)) * sin(glm::radians(yaw)) };*/
+
+    GLuint VAO;
+    GLuint VBO;
+     auto shader = new Shader("Dots.vert", "Dots.frag");
+    glGenBuffers(1, &VAO);
+    glGenBuffers(1, &VBO);
+
+    glGenVertexArrays(1, &VAO);
+    glGenBuffers(1, &VBO);
+
+    glBindVertexArray(VAO);
+    glBindBuffer(GL_ARRAY_BUFFER, VBO);
+    glBufferData(GL_ARRAY_BUFFER, sizeof(vertices), vertices, GL_STATIC_DRAW);
+    glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, 3 * sizeof(GLfloat), (GLvoid*)0);
+    glEnableVertexAttribArray(0);
 
     while (!glfwWindowShouldClose(window))
     {
@@ -60,7 +102,7 @@ int main(int, char**)
         ImGui_ImplGlfw_NewFrame();
         ImGui::NewFrame();
         {
-            ImGui::SetNextWindowPos(ImVec2(2*width/3, 0), ImGuiCond_FirstUseEver);
+            ImGui::SetNextWindowPos(ImVec2(2*width, 0), ImGuiCond_FirstUseEver);
             ImGui::SetNextWindowSize(ImVec2(2 * width / 3, height), ImGuiCond_FirstUseEver);
             ImGui::Begin("Matrix Transform Visualizer", nullptr, window_flags);
             ImGui::Checkbox("Fullscreen", &fullScreen);
@@ -130,7 +172,6 @@ int main(int, char**)
                 if (ImGui::Button("Reset position"))
                     cube->ResetPosition();
             }
-            
             if (ImGui::CollapsingHeader("Shears"))
             {
                 PrintShearsMatrixDescription();
@@ -169,6 +210,12 @@ int main(int, char**)
         ImGui::Render();
         glClear(GL_COLOR_BUFFER_BIT);
 
+        
+        glBindVertexArray(VAO);
+        shader->setMat4("view", viewer->View);
+        shader->setMat4("projection", viewer->Projection);
+        glDrawArrays(GL_POINTS, 0, sizeof(vertices));
+        glBindVertexArray(0);
         viewer->Update();
         axis->Update();
         cube->Update();
@@ -207,7 +254,8 @@ void OnMouse(GLFWwindow* window, double xpos, double ypos)
 {
     if (mouseClicked)
     {
-        if (xpos <= 2 * width / 3)
+        if(xpos <= 2*width/3)
+        if (canRotate)
         {
             if (firstMouse) // эта переменная была проинициализирована значением true
             {

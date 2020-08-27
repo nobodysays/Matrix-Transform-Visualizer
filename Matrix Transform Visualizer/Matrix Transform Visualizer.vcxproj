@@ -173,6 +173,8 @@
     <None Include="Axis.vert" />
     <None Include="Cube.frag" />
     <None Include="Cube.vert" />
+    <None Include="Dots.frag" />
+    <None Include="Dots.vert" />
   </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
   <ImportGroup Label="ExtensionTargets">
